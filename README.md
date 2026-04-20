@@ -1,170 +1,258 @@
-# 📄 Document Management API Challenge
+# Document Management Service
 
-## Overview 🚀
+Spring Boot 3 / Java 17 REST service that stores PDF metadata in PostgreSQL and document bytes in MinIO (S3-compatible). Built for the Clara Ops technical challenge.
 
-In this challenge, you will build a backend API service to manage **large PDF documents**. The service must allow users to upload, search, and download PDF documents while efficiently handling resources, given a **memory limitation of 50MB assigned to the document management service container**.
-This challenge is designed for a mid-senior engineer to demonstrate advanced skills in **Spring Boot, Java, REST API development, testing, containerization, and cloud storage integration**.
-
-## Functional Requirements ✅
-
-### 1. Upload Endpoint ⬆️
-
-- **Functionality:**  
-  Allow uploading a PDF document along with the following metadata:
-  - **User:** A string identifying the user associated with the document.
-  - **Document Name:** The name provided in the request will be used as the file name.
-  - **Tags:** A list of tags associated with the document.
-- **Technical Constraints:**
-  - The service must handle PDF uploads of up to 500MB.
-  - The uploaded PDF should be stored in an bucket (simulated via MinIO) with the following directory structure:
-
-    ```
-    document-bucket/
-      ├─ user1/
-      │  ├─ doc1.pdf
-      │  ├─ doc2.pdf
-      ├─ user2/
-      │  ├─ doc3.pdf
-    ```
-  - Metadata must be persisted in a PostgreSQL database with the following fields:
-    - **User**
-    - **Document Name**
-    - **Tags**
-    - **MinIO Path**
-    - **File Size**
-    - **File Type**
-    - **Created At**
-    - **Include any additional fields you deem necessary**
-
-**📌 Storage Requirement: Uploading Documents to MinIO**
-
-All uploaded documents must be stored in MinIO to ensure scalability and efficient storage management. The service will interact with MinIO to handle file uploads and generate temporary access URLs for retrieval. For detailed instructions on how to set up and use MinIO locally, please refer to the following document:
-📄 [MinIO Local Setup Guide](docs/minio-local-setup.md).
-
-### 2. Search Endpoint 🔍
-
-- **Functionality:**  
-  Allow querying documents with optional filters:
-  - **Filters:** User, Document Name, and Tags.
-  - If no filters are provided, return all documents.
-  - Results should be ordered by `created_at` in descending order.
-  - The endpoint must support pagination using `page` and `size` parameters.
-- **Note:**  
-  This endpoint should not return any download URL.
-
-### 3. Download Endpoint ⬇️
-
-- **Functionality:**  
-  Allow downloading a document using its ID. The endpoint should return a temporary download URL that enables secure access to the document stored in MinIO.
-
-- **Implementation:**  
-  Generate a temporary download URL using MinIO’s pre-signed URL functionality. The service will utilize MinIO to generate a temporary download link based on the document's ID, allowing the document to be securely accessed without exposing direct storage paths.
-
-### Note:
-
-For more details on how to use MinIO, refer to the documentation:
-📄 [MinIO Local Setup Guide](docs/minio-local-setup.md).
-
-## Technical Requirements ⚙️
-
-- **Memory Limitation:**  
-  The service memory is limited to 50MB. You must design your solution to efficiently manage memory during file upload and processing, even when handling uploads of files up to 500MB.
-
-- **Concurrent Uploads:**  
-  The system must be capable of handling up to 10 documents being uploaded in parallel, with each document having a size of up to 500MB.
-
-- **Upload time limit:**  
-  There are no restrictions on the time it takes to upload files. Only, ensure that the service can handle uploads of up to 500MB without exceeding the memory limitation.
-
-- **Provided Artifacts:**
-
-  - OpenAPI specification that includes the contract for the endpoints.
-    - Reference: [document-management-open-api.yml](docs/document-management-open-api.yml).
-    - You can visualize the content using [Swagger Editor](https://editor-next.swagger.io/).
-  - A docker-compose stack that includes PostgreSQL, and the Document Management Service.
-  - Integrated tools:
-    - **Spring Boot:** The project is pre-configured with Spring Boot.
-    - **Spring Data JPA:** For database operations.
-    - **MinIO:** For simulating bucket operations services locally.
-    - **Lombok:** For reducing boilerplate code.
-    - **JUnit 5:** For unit and integration testing.
-    - **Mockito:** For mocking dependencies in tests.
-    - **AssertJ:** For fluent assertions in tests.
-    - **Jacoco:** for code coverage (run `./mvnw jacoco:report` to generate the report).
-    - **Spotless:** for code formatting (run `./mvnw spotless:apply` to format your code).
-- **Java Version:**  
-  The project is configured with Java 17, but you may restrict your solution to features available in Java 8 if necessary.
-- **Schema Management:**  
-  Provide a script for creating the database schema, ensuring efficient handling of multiple tags per document.
-- **Documentation:**  
-  (Optional) Include OpenAPI documentation for the API endpoints.
-
-## Implementation Instructions 🛠️
-
-1. Use this repository as the starting point for your solution. If possible, create a fork of the repository.
-2. Implement the endpoints as per the provided OpenAPI specification.
-3. Configure an MinIO client.
-4. Configure a connection to PostgreSQL.
-5. Include your database schema script in `docker/init-scripts/schema-init.sql`.
-6. Create the Dockerfile for the `document-management-service`.
-7. Modify the docker-compose.yml file to add the necessary configuration for including the document-management-service in the stack. Ensure that the service correctly connects to PostgreSQL and MinIO.
-8. Implement the required functionality for the Document Management Service.
-9. Once your functionality is ready, validate it using Postman. Please note that you must start the stack using `docker-compose up --build`.
-10. Commit your changes. It is recommended to maintain a clean commit history, ideally using [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0-beta.4/).
-11. Push your changes to a personal GitHub account and share the URL of your solution.
-
-**⚠️ Note:**
-All configurations (database credentials, MinIO/S3 settings, etc.) must be externalized using environment variables and configuration files. Avoid hardcoding sensitive information in the source code.
-
-## Evaluation Criteria 🏆
-
-- **Database Schema and Indexing:**  
-  Evaluate the efficiency of your database schema, including the creation of indices and the management of multiple tags per document.
-
-- **Design Patterns and Best Practices:**  
-  Assess the use of design patterns (e.g., Controller-Service-Repository or Hexagonal Architecture) and adherence to SOLID principles and clean code practices.
-
-- **Code Quality:**  
-  Review for readability, maintainability, proper exception handling, and overall coding standards.
-
-- **Testing:**  
-  Evaluate the quality and coverage of unit and integration tests. While no specific coverage percentage is required, tests should cover the most critical functionalities and edge cases.
-
-- **Spring Boot and Java Proficiency:**  
-  Demonstrate effective use of Spring Boot features and Java (preferably Java 17, though Java 8+ is acceptable).
-
-- **Additional Considerations:**
-
-  - Overall robustness and efficiency under concurrent file uploads.
-  - Validations on models and DTOs (e.g., non-null constraints).
-  - (Optional) OpenAPI documentation.
-
-## Challenge Priorities 🎯
-
-1. **Upload Service:**
-   - Primary focus on implementing a robust upload endpoint that efficiently handles large file (**up to 500MB of size**) uploads within the 50MB memory constraint.
-2. **Search Service:**
-   - Implement a flexible and efficient search endpoint with filtering, sorting, and pagination.
-3. **Download Service:**
-   - Provide document download functionality via temporary AWS S3 URLs.
-
-> **Note:** It is acceptable to implement a subset of the endpoints. However, the more complete your solution, the better.
-
-## Submission Instructions 📤
-
-Ensure that your solution includes the Dockerfile and database schema script, and that it adheres to the challenge requirements.
-
-### Additional Comments 💬
-
-If you have any additional notes, explanations, or assumptions regarding your implementation, feel free to include them in this section. This can help provide more context to reviewers.
+- **Upload** (presigned flow: `POST /upload` → client PUTs bytes to MinIO → `POST /upload/{id}/complete`)
+- **Search** with filters + pagination (`POST /search`)
+- **Download** via short-lived presigned URLs (`GET /download/{id}`)
+- Runs under a **50 MB memory cap** while handling 500 MB files × 10 concurrent uploads — because the service never buffers payloads in the JVM.
 
 ---
 
-**⚠️ Important Note About the Challenge Completion ⚠️**
+## Table of Contents
 
-Even if you are unable to complete the challenge 100%, please explain why you couldn't proceed, what doubts you had, and any blockers you encountered. We will review each case individually to determine how it impacts the evaluation.
-
-### **Note: Your approach, problem-solving skills, and reasoning are just as important as the final implementation.**
+1. [Architecture at a glance](#architecture-at-a-glance)
+2. [Prerequisites](#prerequisites)
+3. [Quick start with Docker Compose](#quick-start-with-docker-compose)
+4. [Configuration reference](#configuration-reference)
+5. [API usage](#api-usage)
+6. [Running tests & coverage locally](#running-tests--coverage-locally)
+7. [CI / code quality reports](#ci--code-quality-reports)
+8. [Assumptions & deviations from the spec](#assumptions--deviations-from-the-spec)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
+## Architecture at a glance
+
+```
+              ┌────────────────────┐
+JSON metadata │  document-management-service  │      bytes
+──────────────▶ Spring Boot 3 (50 MB heap) ◀──────────┐
+              └────────┬───────────┘                  │
+                       │ JDBC                         │ S3 API
+                       ▼                              ▼
+                ┌────────────┐                ┌────────────┐
+                │ PostgreSQL │                │   MinIO    │
+                │ (metadata) │                │ (objects)  │
+                └────────────┘                └────────────┘
+```
+
+Layered architecture: `api` (controllers, DTOs, advice) → `domain.service` → `domain.repo` (JPA) + `storage` (MinIO adapter behind a `StoragePort` interface). Specifications build composable, optional filters for search.
+
+See [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) (local-only, not tracked) for milestone-by-milestone notes.
+
+---
+
+## Prerequisites
+
+- **Docker** ≥ 20.10 / Docker Desktop ≥ 4.20 (must expose API ≥ 1.40)
+- **Java 17** (only if you want to run the build outside Docker)
+- **Maven wrapper** (`./mvnw`) — no local Maven install required
+
+---
+
+## Quick start with Docker Compose
+
+```bash
+# 1. copy env template and edit secrets (or use the defaults; they are local-only)
+cd docker
+cp .env.example .env
+
+# 2. build & start the full stack
+docker compose up --build
+
+# service    → http://localhost:8080
+# MinIO API  → http://localhost:9000
+# MinIO UI   → http://localhost:9001   (login with MINIO_ROOT_USER / MINIO_ROOT_PASSWORD from .env)
+# Postgres   → localhost:5432
+```
+
+The compose stack starts, in order:
+
+1. **postgresql** — bitnami/postgresql:15, creates `document_schema` via `init-scripts/schema-init.sql`.
+2. **minio** — MinIO server with the console on `:9001`.
+3. **minio-bootstrap** — one-shot `mc` sidecar that creates the `document-bucket` and the service access key.
+4. **document-management-service** — built from the root `Dockerfile`, hard-capped to 50 MB of RAM, `JAVA_OPTS=-Xmx40m -Xms40m -Xss256k -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError`.
+
+Shut it all down with `docker compose down -v` (the `-v` also removes the named volumes so next boot is clean).
+
+---
+
+## Configuration reference
+
+All settings are injected through environment variables (see `docker/.env.example`). The Spring binding lives in `src/main/resources/application.yml`.
+
+|            Variable            |      Default      |                      Description                      |
+|--------------------------------|-------------------|-------------------------------------------------------|
+| `POSTGRESQL_USERNAME`          | —                 | App DB user                                           |
+| `POSTGRESQL_PASSWORD`          | —                 | App DB password                                       |
+| `POSTGRESQL_POSTGRES_PASSWORD` | —                 | `postgres` root password (Bitnami image needs this)   |
+| `POSTGRESQL_DATABASE`          | `challenge`       | DB name                                               |
+| `MINIO_ROOT_USER`              | —                 | MinIO root user (console login)                       |
+| `MINIO_ROOT_PASSWORD`          | —                 | MinIO root password                                   |
+| `MINIO_ACCESS_KEY`             | —                 | Service access key (created by the bootstrap sidecar) |
+| `MINIO_SECRET_KEY`             | —                 | Service secret key                                    |
+| `MINIO_BUCKET`                 | `document-bucket` | Bucket name                                           |
+| `APP_PORT`                     | `8080`            | Host port the service listens on                      |
+| `MINIO_PUT_TTL_MIN`            | `15`              | Presigned PUT URL TTL, minutes                        |
+| `MINIO_GET_TTL_MIN`            | `5`               | Presigned GET URL TTL, minutes                        |
+
+`.env` and `docker/.env` are git-ignored — secrets never land in the repo.
+
+---
+
+## API usage
+
+Base path: `/document-management` · Content type: `application/json` unless noted.
+
+### 1. Initiate an upload
+
+```bash
+curl -sS -X POST http://localhost:8080/document-management/upload \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user": "alice",
+    "name": "quarterly-report.pdf",
+    "tags": ["finance", "2026Q1"]
+  }'
+```
+
+```json
+{
+  "id": "b0b6c7e0-...-...",
+  "uploadUrl": "http://minio:9000/document-bucket/alice/quarterly-report.pdf?X-Amz-...",
+  "expiresAt": "2026-04-19T22:30:00Z"
+}
+```
+
+### 2. PUT the bytes directly to MinIO
+
+```bash
+curl -sS -X PUT --data-binary @/path/to/report.pdf \
+  -H "Content-Type: application/pdf" \
+  "<uploadUrl from step 1>"
+```
+
+### 3. Mark the upload complete
+
+```bash
+curl -sS -X POST http://localhost:8080/document-management/upload/<id>/complete
+```
+
+```json
+{ "id": "b0b6c7e0-...", "status": "AVAILABLE", "sizeBytes": 1048576, "contentType": "application/pdf" }
+```
+
+`409 Conflict` is returned if the PUT in step 2 never happened (`UploadNotReadyException`).
+
+### 4. Search
+
+```bash
+curl -sS -X POST "http://localhost:8080/document-management/search?page=0&size=20" \
+  -H "Content-Type: application/json" \
+  -d '{ "user": "alice", "tags": ["finance"] }'
+```
+
+Filters are all optional — sending `{}` returns every AVAILABLE document. Default sort is `createdAt,desc`; override with the `sort` query parameter (`?sort=name,asc`).
+
+### 5. Download
+
+```bash
+curl -sS http://localhost:8080/document-management/download/<id>
+# { "url": "http://minio:9000/...?X-Amz-..." }
+
+# then
+curl -sS -o report.pdf "<url>"
+```
+
+404 is returned both when the id is unknown and when the document is still `PENDING` — we don't leak the existence of unfinished uploads.
+
+### Error envelope
+
+Every error flows through `GlobalExceptionHandler` and returns a consistent shape:
+
+```json
+{
+  "timestamp": "2026-04-19T22:35:12Z",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Document not found: b0b6c7e0-...",
+  "path": "/document-management/download/b0b6c7e0-...",
+  "violations": null
+}
+```
+
+Every response also carries `X-Request-Id` (echoed back if supplied, otherwise generated) and the same id appears in the server logs in the `[requestId]` slot.
+
+---
+
+## Running tests & coverage locally
+
+```bash
+# unit + slice tests (fast, ~2s, no Docker required)
+./mvnw -B test -Dtest='DocumentServiceTest,DocumentControllerTest'
+
+# full verify: above + the Testcontainers integration test + Jacoco + SpotBugs + Spotless check
+./mvnw -B verify
+```
+
+Artifacts produced:
+
+- `target/site/jacoco/index.html` — Jacoco HTML coverage report
+- `target/spotbugs.html` — SpotBugs findings
+- `target/surefire-reports/*` — per-test XML + text
+- `target/document-management-service-challenge-*.jar` — Spring Boot fat jar
+
+The integration test (`DocumentManagementIntegrationTest`) boots Postgres + MinIO via Testcontainers and exercises the full flow (init → PUT → complete → search → download → GET byte comparison). It requires a working Docker daemon — see [Troubleshooting](#troubleshooting) if Testcontainers can't find one locally. CI runs it every push.
+
+---
+
+## CI / code quality reports
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every branch push and against PRs into `develop`/`main`:
+
+1. `./mvnw spotless:check` — formatting gate.
+2. `./mvnw verify` — compile, unit + slice + integration tests, Jacoco, SpotBugs.
+3. Uploads artifacts: `jacoco-report`, `surefire-reports`, `spotbugs-report`, `app-jar` (each downloadable from the run page).
+
+Inspect the latest run at:
+`https://github.com/amaro-coria/document-management-service-challenge/actions`
+
+---
+
+## Assumptions & deviations from the spec
+
+The challenge OpenAPI spec describes upload as `application/json` with just `{user, name, tags}` — no file field. Three reasons to interpret that literally and adopt a **presigned-URL** flow rather than streaming multipart through the service:
+
+1. **Memory contract.** The service container is capped at **50 MB**, yet PDFs can be **500 MB × 10 concurrent uploads** = 5 GB of in-flight data. Even streamed multipart requires Tomcat buffers, TLS buffers, and a multipart parser — all competing for the 40 MB heap. Presigned PUT removes the JVM from the data path entirely: MinIO receives bytes directly.
+2. **Contract fidelity.** The upload endpoint stays `application/json` with the documented body. Adding a file part would deviate further than the presigned approach does conceptually.
+3. **Standard S3 idiom.** This is the same pattern AWS recommends for large object uploads.
+
+Deviations introduced:
+
+- **New endpoint** `POST /document-management/upload/{id}/complete` — the client calls this after the PUT succeeds. The service then `statObject`s MinIO, records size + content-type, and flips `status` from `PENDING` to `AVAILABLE`. Returns 409 if the object isn't there yet.
+- **`Document.size`** is returned as a JSON number large enough for a long (`int64`) rather than `int32` as the spec shows. The JPA field is `BIGINT`; narrowing to int32 would lose precision for ≥ 2 GB files. Low risk of client breakage for numeric JSON readers.
+- **`status` field** added to the domain (not in the spec). Search and download hide `PENDING` rows from callers.
+
+Other intentional decisions worth flagging:
+
+- **Indexing strategy** (`schema-init.sql`): only `documents.user_name` and `document_tags.tag`. Indexes on `created_at`, `LOWER(name)`, and `status` were explicitly considered and dropped as unjustified at POC scale — full reasoning is inline in the SQL and in `IMPLEMENTATION_PLAN.md` (M1 notes).
+- **No auth.** The challenge doesn't require it; the "user" field is treated as ambient metadata, not an authenticated principal.
+- **`ddl-auto: validate`.** Hibernate validates the schema against the hand-written `schema-init.sql` rather than generating it — the SQL file is the source of truth.
+
+---
+
+## Troubleshooting
+
+**Integration test fails with "Could not find a valid Docker environment"**
+Your Docker daemon is unreachable to Testcontainers. Check `docker info` returns real data (not empty strings). On Docker Desktop 4.69.x specifically, enable Settings → Advanced → *"Allow the default Docker socket to be used"*, disable Enhanced Container Isolation, and fully restart Docker Desktop. Alternatively, use Colima (`colima start --runtime docker`) or rely on CI (`push` → GitHub Actions) as the authoritative runner.
+
+**Service fails to boot with `OutOfMemoryError`**
+You likely raised upload handling complexity beyond the presigned model. Verify the service never reads the PDF bytes — the controller body is JSON only.
+
+**`./mvnw spotless:check` fails**
+Run `./mvnw spotless:apply` to auto-format, then re-commit.
+
+**Compose can't bind 5432 / 9000 / 9001**
+Set `APP_PORT` / map the port through compose, or stop the conflicting local service (`lsof -i :5432`).

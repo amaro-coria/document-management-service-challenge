@@ -42,8 +42,8 @@ public class DocumentService {
 
   /**
    * Creates a PENDING metadata row and returns a presigned PUT URL. The client PUTs the PDF bytes
-   * directly to MinIO (the service never buffers the payload), then calls
-   * {@link #completeUpload(UUID)} to mark the document available.
+   * directly to MinIO (the service never buffers the payload), then calls {@link
+   * #completeUpload(UUID)} to mark the document available.
    */
   @Transactional
   public UploadDocumentResponse initUpload(UploadDocumentRequest request) {
@@ -99,12 +99,13 @@ public class DocumentService {
   }
 
   /**
-   * Searches AVAILABLE documents with optional filters. When the caller does not specify a sort
-   * the default is {@code createdAt DESC} per the challenge spec.
+   * Searches AVAILABLE documents with optional filters. When the caller does not specify a sort the
+   * default is {@code createdAt DESC} per the challenge spec.
    */
   @Transactional(readOnly = true)
   public PaginatedDocumentSearch search(DocumentSearchFilters filters, Pageable pageable) {
-    DocumentSearchFilters f = filters == null ? new DocumentSearchFilters(null, null, null) : filters;
+    DocumentSearchFilters f =
+        filters == null ? new DocumentSearchFilters(null, null, null) : filters;
 
     Specification<DocumentEntity> spec =
         Specification.where(DocumentSpecifications.hasStatus(DocumentStatus.AVAILABLE))
@@ -115,16 +116,19 @@ public class DocumentService {
     Pageable effective =
         pageable.getSort().isSorted()
             ? pageable
-            : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "createdAt"));
+            : PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
 
     Page<DocumentEntity> page = repository.findAll(spec, effective);
     return DocumentMapper.toPaginated(page);
   }
 
   /**
-   * Generates a time-limited presigned GET URL for an AVAILABLE document. Returns 404 (via
-   * {@link DocumentNotFoundException}) if the document does not exist or has not completed
-   * upload yet — we don't want to leak the existence of PENDING rows.
+   * Generates a time-limited presigned GET URL for an AVAILABLE document. Returns 404 (via {@link
+   * DocumentNotFoundException}) if the document does not exist or has not completed upload yet — we
+   * don't want to leak the existence of PENDING rows.
    */
   @Transactional(readOnly = true)
   public DocumentDownloadUrl getDownloadUrl(UUID id) {

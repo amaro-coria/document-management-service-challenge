@@ -4,8 +4,8 @@ import java.time.Duration;
 import java.util.Optional;
 
 /**
- * Abstraction over the object-store. Keeping this interface lets us mock it in unit tests and
- * swap the implementation (e.g. AWS S3) without touching the service layer.
+ * Abstraction over the object-store. Keeping this interface lets us mock it in unit tests and swap
+ * the implementation (e.g. AWS S3) without touching the service layer.
  */
 public interface StoragePort {
 

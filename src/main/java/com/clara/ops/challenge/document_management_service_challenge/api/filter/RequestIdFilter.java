@@ -13,9 +13,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Propagates a per-request correlation id through SLF4J's MDC and echoes it back in the
- * {@code X-Request-Id} response header. Accepts an incoming header if the client supplies one;
- * otherwise generates a UUID.
+ * Propagates a per-request correlation id through SLF4J's MDC and echoes it back in the {@code
+ * X-Request-Id} response header. Accepts an incoming header if the client supplies one; otherwise
+ * generates a UUID.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)

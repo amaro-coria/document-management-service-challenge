@@ -74,7 +74,8 @@ public class GlobalExceptionHandler {
     return build(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error", req);
   }
 
-  private ResponseEntity<ApiError> build(HttpStatus status, String message, HttpServletRequest req) {
+  private ResponseEntity<ApiError> build(
+      HttpStatus status, String message, HttpServletRequest req) {
     return ResponseEntity.status(status)
         .body(ApiError.of(status.value(), status.getReasonPhrase(), message, req.getRequestURI()));
   }

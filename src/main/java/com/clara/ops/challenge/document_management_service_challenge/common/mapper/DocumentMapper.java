@@ -27,7 +27,11 @@ public final class DocumentMapper {
     List<DocumentDto> docs = page.getContent().stream().map(DocumentMapper::toDto).toList();
     MetadataDto metadata =
         new MetadataDto(
-            page.getNumber(), page.getSize(), docs.size(), page.getTotalPages(), page.getTotalElements());
+            page.getNumber(),
+            page.getSize(),
+            docs.size(),
+            page.getTotalPages(),
+            page.getTotalElements());
     return new PaginatedDocumentSearch(metadata, docs);
   }
 }

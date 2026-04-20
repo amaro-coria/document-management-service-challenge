@@ -8,8 +8,8 @@ import org.springframework.data.jpa.domain.Specification;
 
 /**
  * Builders for {@link DocumentEntity} search predicates. Each method returns {@code null} when the
- * filter is not applicable so callers can compose them with {@code Specification.where(...).and(...)}
- * without worrying about empty inputs.
+ * filter is not applicable so callers can compose them with {@code
+ * Specification.where(...).and(...)} without worrying about empty inputs.
  */
 public final class DocumentSpecifications {
 

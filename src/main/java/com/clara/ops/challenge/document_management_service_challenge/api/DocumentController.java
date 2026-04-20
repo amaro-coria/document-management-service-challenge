@@ -48,8 +48,7 @@ public class DocumentController {
   }
 
   @GetMapping("/download/{documentId}")
-  public ResponseEntity<DocumentDownloadUrl> download(
-      @PathVariable("documentId") UUID documentId) {
+  public ResponseEntity<DocumentDownloadUrl> download(@PathVariable("documentId") UUID documentId) {
     return ResponseEntity.ok(service.getDownloadUrl(documentId));
   }
 }

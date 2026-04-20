@@ -33,7 +33,9 @@ public class MinioStorageAdapter implements StoragePort {
       // Don't prevent boot: the bootstrap sidecar normally handles bucket creation, and in local
       // dev we want the service to start even if MinIO is momentarily unreachable.
       log.warn(
-          "Could not verify MinIO bucket '{}' at startup: {}", properties.bucket(), ex.getMessage());
+          "Could not verify MinIO bucket '{}' at startup: {}",
+          properties.bucket(),
+          ex.getMessage());
     }
   }
 
@@ -93,8 +95,7 @@ public class MinioStorageAdapter implements StoragePort {
               .expiry((int) ttl.toSeconds(), TimeUnit.SECONDS)
               .build());
     } catch (Exception ex) {
-      throw new StorageException(
-          "Failed to presign " + method + " URL for " + objectKey, ex);
+      throw new StorageException("Failed to presign " + method + " URL for " + objectKey, ex);
     }
   }
 }
