@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MinioProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">document-management-service-challenge</a> &gt; <a href="index.source.html" class="el_package">com.clara.ops.challenge.document_management_service_challenge.storage</a> &gt; <span class="el_source">MinioProperties.java</span></div><h1>MinioProperties.java</h1><pre class="source lang-java linenums"><span class="fc" id="L1">package com.clara.ops.challenge.document_management_service_challenge.storage;</span>
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+/**
+ * Strongly-typed binding for {@code storage.minio.*} in application.yml.
+ *
+ * &lt;p&gt;{@code endpoint} is the URL the service uses for admin/API calls (reachable from inside the
+ * docker network). {@code externalEndpoint} is the URL baked into presigned URLs returned to
+ * clients — it must be reachable from wherever the client lives. In local compose this is typically
+ * {@code http://localhost:9000} vs. {@code http://minio:9000}. When unset, falls back to {@code
+ * endpoint}.
+ */
+@ConfigurationProperties(prefix = &quot;storage.minio&quot;)
+public record MinioProperties(
+<span class="nc" id="L16">    String endpoint,</span>
+<span class="nc" id="L17">    String externalEndpoint,</span>
+<span class="nc" id="L18">    String accessKey,</span>
+<span class="nc" id="L19">    String secretKey,</span>
+<span class="nc" id="L20">    String bucket,</span>
+<span class="fc" id="L21">    int presignPutTtlMinutes,</span>
+<span class="fc" id="L22">    int presignGetTtlMinutes) {</span>
+
+  public String signingEndpoint() {
+<span class="nc bnc" id="L25" title="All 4 branches missed.">    return externalEndpoint == null || externalEndpoint.isBlank() ? endpoint : externalEndpoint;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

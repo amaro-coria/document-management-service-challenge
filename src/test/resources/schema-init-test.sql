@@ -1,7 +1,4 @@
--- Schema initialization for the Document Management Service.
--- Executed automatically by the bitnami/postgresql image on first boot
--- (files under /docker-entrypoint-initdb.d are run in alphabetical order).
-
+-- Mirrors docker/init-scripts/schema-init.sql for the Testcontainers Postgres instance.
 CREATE SCHEMA IF NOT EXISTS document_schema;
 SET SCHEMA 'document_schema';
 
@@ -15,7 +12,6 @@ CREATE TABLE IF NOT EXISTS documents (
     status       VARCHAR(32)   NOT NULL,
     created_at   TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 );
-
 
 CREATE INDEX IF NOT EXISTS idx_documents_user ON documents (user_name);
 

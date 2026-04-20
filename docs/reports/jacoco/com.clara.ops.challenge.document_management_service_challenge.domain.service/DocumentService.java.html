@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocumentService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">document-management-service-challenge</a> &gt; <a href="index.source.html" class="el_package">com.clara.ops.challenge.document_management_service_challenge.domain.service</a> &gt; <span class="el_source">DocumentService.java</span></div><h1>DocumentService.java</h1><pre class="source lang-java linenums">package com.clara.ops.challenge.document_management_service_challenge.domain.service;
+
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.DocumentDownloadUrl;
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.DocumentSearchFilters;
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.PaginatedDocumentSearch;
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadCompleteResponse;
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadDocumentRequest;
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadDocumentResponse;
+import com.clara.ops.challenge.document_management_service_challenge.common.exception.DocumentNotFoundException;
+import com.clara.ops.challenge.document_management_service_challenge.common.exception.UploadNotReadyException;
+import com.clara.ops.challenge.document_management_service_challenge.common.mapper.DocumentMapper;
+import com.clara.ops.challenge.document_management_service_challenge.domain.model.DocumentEntity;
+import com.clara.ops.challenge.document_management_service_challenge.domain.model.DocumentStatus;
+import com.clara.ops.challenge.document_management_service_challenge.domain.repo.DocumentRepository;
+import com.clara.ops.challenge.document_management_service_challenge.domain.repo.DocumentSpecifications;
+import com.clara.ops.challenge.document_management_service_challenge.storage.MinioProperties;
+import com.clara.ops.challenge.document_management_service_challenge.storage.StoragePort;
+import com.clara.ops.challenge.document_management_service_challenge.storage.StoragePort.ObjectStat;
+import java.time.Duration;
+import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+<span class="fc" id="L34">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class DocumentService {
+
+  private final DocumentRepository repository;
+  private final StoragePort storage;
+  private final MinioProperties storageProps;
+
+  /**
+   * Creates a PENDING metadata row and returns a presigned PUT URL. The client PUTs the PDF bytes
+   * directly to MinIO (the service never buffers the payload), then calls {@link
+   * #completeUpload(UUID)} to mark the document available.
+   */
+  @Transactional
+  public UploadDocumentResponse initUpload(UploadDocumentRequest request) {
+<span class="fc" id="L50">    UUID id = UUID.randomUUID();</span>
+<span class="fc" id="L51">    String objectKey = storage.buildObjectKey(request.user(), request.name());</span>
+
+<span class="fc" id="L53">    DocumentEntity entity =</span>
+<span class="fc" id="L54">        DocumentEntity.builder()</span>
+<span class="fc" id="L55">            .id(id)</span>
+<span class="fc" id="L56">            .userName(request.user())</span>
+<span class="fc" id="L57">            .name(request.name())</span>
+<span class="fc" id="L58">            .minioPath(objectKey)</span>
+<span class="fc" id="L59">            .status(DocumentStatus.PENDING)</span>
+<span class="fc" id="L60">            .createdAt(OffsetDateTime.now())</span>
+<span class="fc" id="L61">            .tags(new HashSet&lt;&gt;(request.tags()))</span>
+<span class="fc" id="L62">            .build();</span>
+<span class="fc" id="L63">    repository.save(entity);</span>
+
+<span class="fc" id="L65">    Duration ttl = Duration.ofMinutes(storageProps.presignPutTtlMinutes());</span>
+<span class="fc" id="L66">    String url = storage.presignPut(objectKey, ttl);</span>
+<span class="fc" id="L67">    OffsetDateTime expiresAt = OffsetDateTime.now().plus(ttl);</span>
+
+<span class="fc" id="L69">    log.info(&quot;Initiated upload id={} user={} name={}&quot;, id, request.user(), request.name());</span>
+<span class="fc" id="L70">    return new UploadDocumentResponse(id, url, expiresAt);</span>
+  }
+
+  /**
+   * Verifies that the object has been uploaded to MinIO, records size/content-type, and flips
+   * status to AVAILABLE.
+   */
+  @Transactional
+  public UploadCompleteResponse completeUpload(UUID id) {
+<span class="fc" id="L79">    DocumentEntity entity =</span>
+<span class="fc" id="L80">        repository.findById(id).orElseThrow(() -&gt; new DocumentNotFoundException(id));</span>
+
+<span class="fc" id="L82">    Optional&lt;ObjectStat&gt; stat = storage.stat(entity.getMinioPath());</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">    if (stat.isEmpty()) {</span>
+<span class="fc" id="L84">      throw new UploadNotReadyException(id);</span>
+    }
+
+<span class="fc" id="L87">    entity.setSizeBytes(stat.get().sizeBytes());</span>
+<span class="fc" id="L88">    entity.setContentType(stat.get().contentType());</span>
+<span class="fc" id="L89">    entity.setStatus(DocumentStatus.AVAILABLE);</span>
+<span class="fc" id="L90">    repository.save(entity);</span>
+
+<span class="fc" id="L92">    log.info(</span>
+<span class="fc" id="L93">        &quot;Completed upload id={} size={}B type={}&quot;,</span>
+<span class="fc" id="L94">        id,</span>
+<span class="fc" id="L95">        entity.getSizeBytes(),</span>
+<span class="fc" id="L96">        entity.getContentType());</span>
+<span class="fc" id="L97">    return new UploadCompleteResponse(</span>
+<span class="fc" id="L98">        id, entity.getStatus(), entity.getSizeBytes(), entity.getContentType());</span>
+  }
+
+  /**
+   * Searches AVAILABLE documents with optional filters. When the caller does not specify a sort the
+   * default is {@code createdAt DESC} per the challenge spec.
+   */
+  @Transactional(readOnly = true)
+  public PaginatedDocumentSearch search(DocumentSearchFilters filters, Pageable pageable) {
+<span class="fc" id="L107">    DocumentSearchFilters f =</span>
+<span class="pc bpc" id="L108" title="1 of 2 branches missed.">        filters == null ? new DocumentSearchFilters(null, null, null) : filters;</span>
+
+<span class="fc" id="L110">    Specification&lt;DocumentEntity&gt; spec =</span>
+<span class="fc" id="L111">        Specification.where(DocumentSpecifications.hasStatus(DocumentStatus.AVAILABLE))</span>
+<span class="fc" id="L112">            .and(DocumentSpecifications.hasUser(f.user()))</span>
+<span class="fc" id="L113">            .and(DocumentSpecifications.nameContains(f.name()))</span>
+<span class="fc" id="L114">            .and(DocumentSpecifications.hasAnyTag(f.tags()));</span>
+
+<span class="fc" id="L116">    Pageable effective =</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        pageable.getSort().isSorted()</span>
+<span class="fc" id="L118">            ? pageable</span>
+<span class="fc" id="L119">            : PageRequest.of(</span>
+<span class="fc" id="L120">                pageable.getPageNumber(),</span>
+<span class="fc" id="L121">                pageable.getPageSize(),</span>
+<span class="fc" id="L122">                Sort.by(Sort.Direction.DESC, &quot;createdAt&quot;));</span>
+
+<span class="fc" id="L124">    Page&lt;DocumentEntity&gt; page = repository.findAll(spec, effective);</span>
+<span class="fc" id="L125">    return DocumentMapper.toPaginated(page);</span>
+  }
+
+  /**
+   * Generates a time-limited presigned GET URL for an AVAILABLE document. Returns 404 (via {@link
+   * DocumentNotFoundException}) if the document does not exist or has not completed upload yet — we
+   * don't want to leak the existence of PENDING rows.
+   */
+  @Transactional(readOnly = true)
+  public DocumentDownloadUrl getDownloadUrl(UUID id) {
+<span class="fc" id="L135">    DocumentEntity entity =</span>
+<span class="fc" id="L136">        repository.findById(id).orElseThrow(() -&gt; new DocumentNotFoundException(id));</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (entity.getStatus() != DocumentStatus.AVAILABLE) {</span>
+<span class="fc" id="L138">      throw new DocumentNotFoundException(id);</span>
+    }
+<span class="fc" id="L140">    Duration ttl = Duration.ofMinutes(storageProps.presignGetTtlMinutes());</span>
+<span class="fc" id="L141">    String url = storage.presignGet(entity.getMinioPath(), ttl);</span>
+<span class="fc" id="L142">    return new DocumentDownloadUrl(url);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
