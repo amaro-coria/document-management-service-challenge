@@ -55,7 +55,7 @@ class DocumentServiceTest {
 
   @BeforeEach
   void setUp() {
-    props = new MinioProperties("http://localhost:9000", "ak", "sk", "bucket", 15, 5);
+    props = new MinioProperties("http://localhost:9000", null, "ak", "sk", "bucket", 15, 5);
     service = new DocumentService(repository, storage, props);
   }
 

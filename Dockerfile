@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- build stage ----------------------------------------------------------
-FROM eclipse-temurin:17-jdk-alpine AS build
+FROM eclipse-temurin:17-jdk-jammy AS build
 WORKDIR /workspace
 
 COPY .mvn .mvn
@@ -13,10 +13,10 @@ RUN ./mvnw -B -q -DskipTests package \
     && cp target/*.jar app.jar
 
 # ---- runtime stage --------------------------------------------------------
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
-RUN addgroup -S app && adduser -S app -G app
+RUN groupadd --system app && useradd --system --gid app app
 COPY --from=build /workspace/app.jar /app/app.jar
 USER app
 

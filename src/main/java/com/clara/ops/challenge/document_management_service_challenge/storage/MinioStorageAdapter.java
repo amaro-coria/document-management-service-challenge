@@ -13,17 +13,26 @@ import jakarta.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class MinioStorageAdapter implements StoragePort {
 
-  private final MinioClient minioClient;
+  private final MinioClient adminClient;
+  private final MinioClient signingClient;
   private final MinioProperties properties;
+
+  public MinioStorageAdapter(
+      @Qualifier("minioAdminClient") MinioClient adminClient,
+      @Qualifier("minioSigningClient") MinioClient signingClient,
+      MinioProperties properties) {
+    this.adminClient = adminClient;
+    this.signingClient = signingClient;
+    this.properties = properties;
+  }
 
   @PostConstruct
   void init() {
@@ -43,9 +52,9 @@ public class MinioStorageAdapter implements StoragePort {
   public void ensureBucket() {
     try {
       boolean exists =
-          minioClient.bucketExists(BucketExistsArgs.builder().bucket(properties.bucket()).build());
+          adminClient.bucketExists(BucketExistsArgs.builder().bucket(properties.bucket()).build());
       if (!exists) {
-        minioClient.makeBucket(MakeBucketArgs.builder().bucket(properties.bucket()).build());
+        adminClient.makeBucket(MakeBucketArgs.builder().bucket(properties.bucket()).build());
         log.info("Created MinIO bucket '{}'", properties.bucket());
       }
     } catch (Exception ex) {
@@ -72,7 +81,7 @@ public class MinioStorageAdapter implements StoragePort {
   public Optional<ObjectStat> stat(String objectKey) {
     try {
       StatObjectResponse resp =
-          minioClient.statObject(
+          adminClient.statObject(
               StatObjectArgs.builder().bucket(properties.bucket()).object(objectKey).build());
       return Optional.of(new ObjectStat(resp.size(), resp.contentType()));
     } catch (ErrorResponseException ex) {
@@ -87,7 +96,7 @@ public class MinioStorageAdapter implements StoragePort {
 
   private String presign(Method method, String objectKey, Duration ttl) {
     try {
-      return minioClient.getPresignedObjectUrl(
+      return signingClient.getPresignedObjectUrl(
           GetPresignedObjectUrlArgs.builder()
               .method(method)
               .bucket(properties.bucket())

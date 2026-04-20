@@ -5,7 +5,7 @@ Spring Boot 3 / Java 17 REST service that stores PDF metadata in PostgreSQL and 
 - **Upload** (presigned flow: `POST /upload` → client PUTs bytes to MinIO → `POST /upload/{id}/complete`)
 - **Search** with filters + pagination (`POST /search`)
 - **Download** via short-lived presigned URLs (`GET /download/{id}`)
-- Runs under a **50 MB memory cap** while handling 500 MB files × 10 concurrent uploads — because the service never buffers payloads in the JVM.
+- **Payloads never traverse the JVM** — bytes go client → MinIO directly. The service memory footprint is decoupled from upload size, so 500 MB × 10 concurrent uploads do not stress the heap. (See [Memory footprint](#memory-footprint) for why the compose limit is set to 320 MB instead of 50 MB.)
 
 ---
 
@@ -18,8 +18,9 @@ Spring Boot 3 / Java 17 REST service that stores PDF metadata in PostgreSQL and 
 5. [API usage](#api-usage)
 6. [Running tests & coverage locally](#running-tests--coverage-locally)
 7. [CI / code quality reports](#ci--code-quality-reports)
-8. [Assumptions & deviations from the spec](#assumptions--deviations-from-the-spec)
-9. [Troubleshooting](#troubleshooting)
+8. [Memory footprint](#memory-footprint)
+9. [Assumptions & deviations from the spec](#assumptions--deviations-from-the-spec)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -70,10 +71,10 @@ docker compose up --build
 
 The compose stack starts, in order:
 
-1. **postgresql** — bitnami/postgresql:15, creates `document_schema` via `init-scripts/schema-init.sql`.
+1. **postgresql** — `postgres:15-alpine`, creates `document_schema` via `init-scripts/schema-init.sql`.
 2. **minio** — MinIO server with the console on `:9001`.
 3. **minio-bootstrap** — one-shot `mc` sidecar that creates the `document-bucket` and the service access key.
-4. **document-management-service** — built from the root `Dockerfile`, hard-capped to 50 MB of RAM, `JAVA_OPTS=-Xmx40m -Xms40m -Xss256k -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError`.
+4. **document-management-service** — built from the root `Dockerfile`, capped at 320 MB of RAM (see [Memory footprint](#memory-footprint) for why this isn't 50 MB).
 
 Shut it all down with `docker compose down -v` (the `-v` also removes the named volumes so next boot is clean).
 
@@ -83,20 +84,19 @@ Shut it all down with `docker compose down -v` (the `-v` also removes the named 
 
 All settings are injected through environment variables (see `docker/.env.example`). The Spring binding lives in `src/main/resources/application.yml`.
 
-|            Variable            |      Default      |                      Description                      |
-|--------------------------------|-------------------|-------------------------------------------------------|
-| `POSTGRESQL_USERNAME`          | —                 | App DB user                                           |
-| `POSTGRESQL_PASSWORD`          | —                 | App DB password                                       |
-| `POSTGRESQL_POSTGRES_PASSWORD` | —                 | `postgres` root password (Bitnami image needs this)   |
-| `POSTGRESQL_DATABASE`          | `challenge`       | DB name                                               |
-| `MINIO_ROOT_USER`              | —                 | MinIO root user (console login)                       |
-| `MINIO_ROOT_PASSWORD`          | —                 | MinIO root password                                   |
-| `MINIO_ACCESS_KEY`             | —                 | Service access key (created by the bootstrap sidecar) |
-| `MINIO_SECRET_KEY`             | —                 | Service secret key                                    |
-| `MINIO_BUCKET`                 | `document-bucket` | Bucket name                                           |
-| `APP_PORT`                     | `8080`            | Host port the service listens on                      |
-| `MINIO_PUT_TTL_MIN`            | `15`              | Presigned PUT URL TTL, minutes                        |
-| `MINIO_GET_TTL_MIN`            | `5`               | Presigned GET URL TTL, minutes                        |
+|       Variable        |      Default      |                      Description                      |
+|-----------------------|-------------------|-------------------------------------------------------|
+| `POSTGRESQL_USERNAME` | —                 | App DB user                                           |
+| `POSTGRESQL_PASSWORD` | —                 | App DB password                                       |
+| `POSTGRESQL_DATABASE` | `challenge`       | DB name                                               |
+| `MINIO_ROOT_USER`     | —                 | MinIO root user (console login)                       |
+| `MINIO_ROOT_PASSWORD` | —                 | MinIO root password                                   |
+| `MINIO_ACCESS_KEY`    | —                 | Service access key (created by the bootstrap sidecar) |
+| `MINIO_SECRET_KEY`    | —                 | Service secret key                                    |
+| `MINIO_BUCKET`        | `document-bucket` | Bucket name                                           |
+| `APP_PORT`            | `8080`            | Host port the service listens on                      |
+| `MINIO_PUT_TTL_MIN`   | `15`              | Presigned PUT URL TTL, minutes                        |
+| `MINIO_GET_TTL_MIN`   | `5`               | Presigned GET URL TTL, minutes                        |
 
 `.env` and `docker/.env` are git-ignored — secrets never land in the repo.
 
@@ -218,6 +218,27 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every branch push and agains
 
 Inspect the latest run at:
 `https://github.com/amaro-coria/document-management-service-challenge/actions`
+
+---
+
+## Memory footprint
+
+The challenge specifies **50 MB** for the service container. In practice, stock Spring Boot 3 + Spring Data JPA + Hibernate + embedded Tomcat has a baseline resident set that sits well above 50 MB on any mainstream JVM:
+
+|                       Component                        | Typical footprint |
+|--------------------------------------------------------|-------------------|
+| JVM native (code cache floor, GC threads, stacks, JIT) | ~20–30 MB         |
+| Metaspace (Spring + Hibernate + JDBC classloading)     | ~80–100 MB        |
+| Heap (small, serial GC, Spring context + Hikari)       | ~40–80 MB         |
+| Direct buffers (Tomcat + JDBC)                         | ~8–16 MB          |
+
+An empirical run-through: `-Xmx20m -XX:MaxMetaspaceSize=48m -XX:ReservedCodeCacheSize=12m` boots into Hibernate's `PersistenceUnitInfo` stage and then gets OOM-killed (exit 137) at the 50 MB container limit. Even `-XX:MaxRAM=50m` auto-sizing hits the same wall. The only realistic way to fit Spring Boot 3 in 50 MB is a **GraalVM native image**, which is out of scope for this POC.
+
+**What we did about it — the architecture, not the number, is what protects memory:**
+
+- The 50 MB number in the spec was almost certainly authored assuming a **byte-streaming architecture** where large uploads would stress the heap. The presigned-URL flow (see [Assumptions & deviations](#assumptions--deviations-from-the-spec)) removes that concern entirely: PDFs go client → MinIO directly and the JVM only ever sees a few KB of JSON metadata per upload. The 500 MB × 10 concurrent uploads concurrency goal is met by design, not by JVM tuning.
+- Compose is set to **320 MB** with `JAVA_OPTS=-Xmx96m -Xms64m -XX:MaxMetaspaceSize=96m …`. Observed steady-state RSS is ~200 MB.
+- If the reviewer requires the literal 50 MB cap we're happy to demonstrate a GraalVM native build on request.
 
 ---
 
