@@ -38,7 +38,7 @@ output "next_steps" {
       AWS_REGION          = ${var.region}
       AWS_ROLE_ARN        = ${aws_iam_role.ci.arn}
       ECR_REPOSITORY      = ${aws_ecr_repository.service.repository_url}
-      TF_STATE_BUCKET     = ${aws_s3_bucket.tf_state.bucket}
+      TF_STATE_BUCKET     = ${aws_s3_bucket.tf_state.id}
       TF_STATE_LOCK_TABLE = ${aws_dynamodb_table.tf_state_lock.name}
       PROJECT_PREFIX      = ${var.project_prefix}
 

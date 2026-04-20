@@ -3,7 +3,8 @@
 ########################################
 
 resource "aws_s3_bucket" "tf_state" {
-  bucket = "${var.project_prefix}-tf-state"
+  # Account ID keeps this globally unique — plain prefix-based names often collide.
+  bucket = "${var.project_prefix}-tf-state-${data.aws_caller_identity.current.account_id}"
 }
 
 resource "aws_s3_bucket_versioning" "tf_state" {
