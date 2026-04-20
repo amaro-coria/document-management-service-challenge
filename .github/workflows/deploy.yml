@@ -57,9 +57,12 @@ jobs:
 
       - name: Build & push Docker image
         env:
-          ECR_REPO: ${{ vars.ECR_REPOSITORY }}
+          ECR_REPO_RAW: ${{ vars.ECR_REPOSITORY }}
           TAG: ${{ steps.vars.outputs.tag }}
         run: |
+          # Strip any stray whitespace a pasted repo variable might carry.
+          ECR_REPO="$(echo -n "$ECR_REPO_RAW" | tr -d '[:space:]')"
+          echo "Pushing to $ECR_REPO:$TAG"
           docker build -t "$ECR_REPO:$TAG" -t "$ECR_REPO:latest" .
           docker push "$ECR_REPO:$TAG"
           docker push "$ECR_REPO:latest"

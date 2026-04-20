@@ -92,6 +92,8 @@ resource "aws_iam_role_policy" "ci_iam" {
           "iam:CreateInstanceProfile",
           "iam:DeleteInstanceProfile",
           "iam:GetInstanceProfile",
+          "iam:ListInstanceProfiles",
+          "iam:ListInstanceProfilesForRole",
           "iam:AddRoleToInstanceProfile",
           "iam:RemoveRoleFromInstanceProfile",
           "iam:CreatePolicy",
@@ -103,7 +105,27 @@ resource "aws_iam_role_policy" "ci_iam" {
           "iam:GetPolicyVersion",
           "iam:ListPolicyVersions",
           "iam:ListEntitiesForPolicy",
-          "iam:ListPolicyTags"
+          "iam:ListPolicyTags",
+          "iam:CreateUser",
+          "iam:DeleteUser",
+          "iam:GetUser",
+          "iam:UpdateUser",
+          "iam:ListUsers",
+          "iam:TagUser",
+          "iam:UntagUser",
+          "iam:ListUserTags",
+          "iam:PutUserPolicy",
+          "iam:DeleteUserPolicy",
+          "iam:GetUserPolicy",
+          "iam:ListUserPolicies",
+          "iam:AttachUserPolicy",
+          "iam:DetachUserPolicy",
+          "iam:ListAttachedUserPolicies",
+          "iam:CreateAccessKey",
+          "iam:DeleteAccessKey",
+          "iam:UpdateAccessKey",
+          "iam:ListAccessKeys",
+          "iam:GetAccessKeyLastUsed"
         ]
         Resource = "*"
       }
