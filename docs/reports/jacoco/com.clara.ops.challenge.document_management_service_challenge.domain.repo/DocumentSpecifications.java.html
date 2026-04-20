@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DocumentSpecifications.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">document-management-service-challenge</a> &gt; <a href="index.source.html" class="el_package">com.clara.ops.challenge.document_management_service_challenge.domain.repo</a> &gt; <span class="el_source">DocumentSpecifications.java</span></div><h1>DocumentSpecifications.java</h1><pre class="source lang-java linenums">package com.clara.ops.challenge.document_management_service_challenge.domain.repo;
+
+import com.clara.ops.challenge.document_management_service_challenge.domain.model.DocumentEntity;
+import com.clara.ops.challenge.document_management_service_challenge.domain.model.DocumentStatus;
+import jakarta.persistence.criteria.Join;
+import java.util.Collection;
+import org.springframework.data.jpa.domain.Specification;
+
+/**
+ * Builders for {@link DocumentEntity} search predicates. Each method returns {@code null} when the
+ * filter is not applicable so callers can compose them with {@code
+ * Specification.where(...).and(...)} without worrying about empty inputs.
+ */
+public final class DocumentSpecifications {
+
+  private DocumentSpecifications() {}
+
+  public static Specification&lt;DocumentEntity&gt; hasUser(String user) {
+<span class="pc bpc" id="L19" title="1 of 4 branches missed.">    if (user == null || user.isBlank()) {</span>
+<span class="fc" id="L20">      return null;</span>
+    }
+<span class="pc" id="L22">    return (root, query, cb) -&gt; cb.equal(root.get(&quot;userName&quot;), user);</span>
+  }
+
+  /** Case-insensitive substring match on document name. */
+  public static Specification&lt;DocumentEntity&gt; nameContains(String name) {
+<span class="pc bpc" id="L27" title="3 of 4 branches missed.">    if (name == null || name.isBlank()) {</span>
+<span class="fc" id="L28">      return null;</span>
+    }
+<span class="nc" id="L30">    String pattern = &quot;%&quot; + name.toLowerCase() + &quot;%&quot;;</span>
+<span class="nc" id="L31">    return (root, query, cb) -&gt; cb.like(cb.lower(root.get(&quot;name&quot;)), pattern);</span>
+  }
+
+  /** Matches any document that has at least one of the provided tags. */
+  public static Specification&lt;DocumentEntity&gt; hasAnyTag(Collection&lt;String&gt; tags) {
+<span class="pc bpc" id="L36" title="3 of 4 branches missed.">    if (tags == null || tags.isEmpty()) {</span>
+<span class="fc" id="L37">      return null;</span>
+    }
+<span class="nc" id="L39">    return (root, query, cb) -&gt; {</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">      if (query != null) {</span>
+<span class="nc" id="L41">        query.distinct(true);</span>
+      }
+<span class="nc" id="L43">      Join&lt;DocumentEntity, String&gt; tagJoin = root.joinSet(&quot;tags&quot;);</span>
+<span class="nc" id="L44">      return tagJoin.in(tags);</span>
+    };
+  }
+
+  public static Specification&lt;DocumentEntity&gt; hasStatus(DocumentStatus status) {
+<span class="pc bpc" id="L49" title="1 of 2 branches missed.">    if (status == null) {</span>
+<span class="nc" id="L50">      return null;</span>
+    }
+<span class="pc" id="L52">    return (root, query, cb) -&gt; cb.equal(root.get(&quot;status&quot;), status);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

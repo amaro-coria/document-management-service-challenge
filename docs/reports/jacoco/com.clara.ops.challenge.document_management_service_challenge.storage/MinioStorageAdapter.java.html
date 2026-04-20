@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MinioStorageAdapter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">document-management-service-challenge</a> &gt; <a href="index.source.html" class="el_package">com.clara.ops.challenge.document_management_service_challenge.storage</a> &gt; <span class="el_source">MinioStorageAdapter.java</span></div><h1>MinioStorageAdapter.java</h1><pre class="source lang-java linenums">package com.clara.ops.challenge.document_management_service_challenge.storage;
+
+import com.clara.ops.challenge.document_management_service_challenge.common.exception.StorageException;
+import io.minio.BucketExistsArgs;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.StatObjectArgs;
+import io.minio.StatObjectResponse;
+import io.minio.errors.ErrorResponseException;
+import io.minio.http.Method;
+import jakarta.annotation.PostConstruct;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+
+<span class="nc" id="L20">@Slf4j</span>
+@Component
+public class MinioStorageAdapter implements StoragePort {
+
+  private final MinioClient adminClient;
+  private final MinioClient signingClient;
+  private final MinioProperties properties;
+
+<span class="nc" id="L28">  public MinioStorageAdapter(</span>
+      @Qualifier(&quot;minioAdminClient&quot;) MinioClient adminClient,
+      @Qualifier(&quot;minioSigningClient&quot;) MinioClient signingClient,
+      MinioProperties properties) {
+<span class="nc" id="L32">    this.adminClient = adminClient;</span>
+<span class="nc" id="L33">    this.signingClient = signingClient;</span>
+<span class="nc" id="L34">    this.properties = properties;</span>
+<span class="nc" id="L35">  }</span>
+
+  @PostConstruct
+  void init() {
+    try {
+<span class="nc" id="L40">      ensureBucket();</span>
+<span class="nc" id="L41">    } catch (Exception ex) {</span>
+      // Don't prevent boot: the bootstrap sidecar normally handles bucket creation, and in local
+      // dev we want the service to start even if MinIO is momentarily unreachable.
+<span class="nc" id="L44">      log.warn(</span>
+<span class="nc" id="L45">          &quot;Could not verify MinIO bucket '{}' at startup: {}&quot;,</span>
+<span class="nc" id="L46">          properties.bucket(),</span>
+<span class="nc" id="L47">          ex.getMessage());</span>
+    }
+<span class="nc" id="L49">  }</span>
+
+  @Override
+  public void ensureBucket() {
+    try {
+<span class="nc" id="L54">      boolean exists =</span>
+<span class="nc" id="L55">          adminClient.bucketExists(BucketExistsArgs.builder().bucket(properties.bucket()).build());</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">      if (!exists) {</span>
+<span class="nc" id="L57">        adminClient.makeBucket(MakeBucketArgs.builder().bucket(properties.bucket()).build());</span>
+<span class="nc" id="L58">        log.info(&quot;Created MinIO bucket '{}'&quot;, properties.bucket());</span>
+      }
+<span class="nc" id="L60">    } catch (Exception ex) {</span>
+<span class="nc" id="L61">      throw new StorageException(&quot;Failed to ensure bucket &quot; + properties.bucket(), ex);</span>
+    }
+<span class="nc" id="L63">  }</span>
+
+  @Override
+  public String buildObjectKey(String userName, String documentName) {
+<span class="nc" id="L67">    return userName + &quot;/&quot; + documentName;</span>
+  }
+
+  @Override
+  public String presignPut(String objectKey, Duration ttl) {
+<span class="nc" id="L72">    return presign(Method.PUT, objectKey, ttl);</span>
+  }
+
+  @Override
+  public String presignGet(String objectKey, Duration ttl) {
+<span class="nc" id="L77">    return presign(Method.GET, objectKey, ttl);</span>
+  }
+
+  @Override
+  public Optional&lt;ObjectStat&gt; stat(String objectKey) {
+    try {
+<span class="nc" id="L83">      StatObjectResponse resp =</span>
+<span class="nc" id="L84">          adminClient.statObject(</span>
+<span class="nc" id="L85">              StatObjectArgs.builder().bucket(properties.bucket()).object(objectKey).build());</span>
+<span class="nc" id="L86">      return Optional.of(new ObjectStat(resp.size(), resp.contentType()));</span>
+<span class="nc" id="L87">    } catch (ErrorResponseException ex) {</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">      if (&quot;NoSuchKey&quot;.equals(ex.errorResponse().code())) {</span>
+<span class="nc" id="L89">        return Optional.empty();</span>
+      }
+<span class="nc" id="L91">      throw new StorageException(&quot;Failed to stat object &quot; + objectKey, ex);</span>
+<span class="nc" id="L92">    } catch (Exception ex) {</span>
+<span class="nc" id="L93">      throw new StorageException(&quot;Failed to stat object &quot; + objectKey, ex);</span>
+    }
+  }
+
+  private String presign(Method method, String objectKey, Duration ttl) {
+    try {
+<span class="nc" id="L99">      return signingClient.getPresignedObjectUrl(</span>
+<span class="nc" id="L100">          GetPresignedObjectUrlArgs.builder()</span>
+<span class="nc" id="L101">              .method(method)</span>
+<span class="nc" id="L102">              .bucket(properties.bucket())</span>
+<span class="nc" id="L103">              .object(objectKey)</span>
+<span class="nc" id="L104">              .expiry((int) ttl.toSeconds(), TimeUnit.SECONDS)</span>
+<span class="nc" id="L105">              .build());</span>
+<span class="nc" id="L106">    } catch (Exception ex) {</span>
+<span class="nc" id="L107">      throw new StorageException(&quot;Failed to presign &quot; + method + &quot; URL for &quot; + objectKey, ex);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
