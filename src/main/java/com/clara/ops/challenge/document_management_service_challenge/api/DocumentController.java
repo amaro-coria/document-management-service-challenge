@@ -1,5 +1,7 @@
 package com.clara.ops.challenge.document_management_service_challenge.api;
 
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.DocumentSearchFilters;
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.PaginatedDocumentSearch;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadCompleteResponse;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadDocumentRequest;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadDocumentResponse;
@@ -7,6 +9,8 @@ import com.clara.ops.challenge.document_management_service_challenge.domain.serv
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,5 +36,12 @@ public class DocumentController {
   @PostMapping("/upload/{id}/complete")
   public ResponseEntity<UploadCompleteResponse> complete(@PathVariable("id") UUID id) {
     return ResponseEntity.ok(service.completeUpload(id));
+  }
+
+  @PostMapping("/search")
+  public ResponseEntity<PaginatedDocumentSearch> search(
+      @RequestBody(required = false) DocumentSearchFilters filters,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(service.search(filters, pageable));
   }
 }

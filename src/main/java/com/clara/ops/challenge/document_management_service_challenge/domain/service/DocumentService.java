@@ -1,13 +1,17 @@
 package com.clara.ops.challenge.document_management_service_challenge.domain.service;
 
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.DocumentSearchFilters;
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.PaginatedDocumentSearch;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadCompleteResponse;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadDocumentRequest;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadDocumentResponse;
 import com.clara.ops.challenge.document_management_service_challenge.common.exception.DocumentNotFoundException;
 import com.clara.ops.challenge.document_management_service_challenge.common.exception.UploadNotReadyException;
+import com.clara.ops.challenge.document_management_service_challenge.common.mapper.DocumentMapper;
 import com.clara.ops.challenge.document_management_service_challenge.domain.model.DocumentEntity;
 import com.clara.ops.challenge.document_management_service_challenge.domain.model.DocumentStatus;
 import com.clara.ops.challenge.document_management_service_challenge.domain.repo.DocumentRepository;
+import com.clara.ops.challenge.document_management_service_challenge.domain.repo.DocumentSpecifications;
 import com.clara.ops.challenge.document_management_service_challenge.storage.MinioProperties;
 import com.clara.ops.challenge.document_management_service_challenge.storage.StoragePort;
 import com.clara.ops.challenge.document_management_service_challenge.storage.StoragePort.ObjectStat;
@@ -18,6 +22,11 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,5 +95,28 @@ public class DocumentService {
         entity.getContentType());
     return new UploadCompleteResponse(
         id, entity.getStatus(), entity.getSizeBytes(), entity.getContentType());
+  }
+
+  /**
+   * Searches AVAILABLE documents with optional filters. When the caller does not specify a sort
+   * the default is {@code createdAt DESC} per the challenge spec.
+   */
+  @Transactional(readOnly = true)
+  public PaginatedDocumentSearch search(DocumentSearchFilters filters, Pageable pageable) {
+    DocumentSearchFilters f = filters == null ? new DocumentSearchFilters(null, null, null) : filters;
+
+    Specification<DocumentEntity> spec =
+        Specification.where(DocumentSpecifications.hasStatus(DocumentStatus.AVAILABLE))
+            .and(DocumentSpecifications.hasUser(f.user()))
+            .and(DocumentSpecifications.nameContains(f.name()))
+            .and(DocumentSpecifications.hasAnyTag(f.tags()));
+
+    Pageable effective =
+        pageable.getSort().isSorted()
+            ? pageable
+            : PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(Sort.Direction.DESC, "createdAt"));
+
+    Page<DocumentEntity> page = repository.findAll(spec, effective);
+    return DocumentMapper.toPaginated(page);
   }
 }
