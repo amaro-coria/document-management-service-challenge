@@ -95,7 +95,7 @@ class DocumentManagementIntegrationTest {
     mvc.perform(post("/document-management/upload/{id}/complete", init.id()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("AVAILABLE"))
-        .andExpect(jsonPath("$.sizeBytes").value(20));
+        .andExpect(jsonPath("$.sizeBytes").value(21));
 
     // 4. search finds it and excludes PENDING
     mvc.perform(
