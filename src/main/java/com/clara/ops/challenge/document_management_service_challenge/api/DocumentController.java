@@ -1,5 +1,6 @@
 package com.clara.ops.challenge.document_management_service_challenge.api;
 
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.DocumentDownloadUrl;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.DocumentSearchFilters;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.PaginatedDocumentSearch;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadCompleteResponse;
@@ -13,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,5 +45,11 @@ public class DocumentController {
       @RequestBody(required = false) DocumentSearchFilters filters,
       @PageableDefault(size = 20) Pageable pageable) {
     return ResponseEntity.ok(service.search(filters, pageable));
+  }
+
+  @GetMapping("/download/{documentId}")
+  public ResponseEntity<DocumentDownloadUrl> download(
+      @PathVariable("documentId") UUID documentId) {
+    return ResponseEntity.ok(service.getDownloadUrl(documentId));
   }
 }

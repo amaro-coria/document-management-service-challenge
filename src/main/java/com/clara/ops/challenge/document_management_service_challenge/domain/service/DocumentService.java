@@ -1,5 +1,6 @@
 package com.clara.ops.challenge.document_management_service_challenge.domain.service;
 
+import com.clara.ops.challenge.document_management_service_challenge.api.dto.DocumentDownloadUrl;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.DocumentSearchFilters;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.PaginatedDocumentSearch;
 import com.clara.ops.challenge.document_management_service_challenge.api.dto.UploadCompleteResponse;
@@ -118,5 +119,22 @@ public class DocumentService {
 
     Page<DocumentEntity> page = repository.findAll(spec, effective);
     return DocumentMapper.toPaginated(page);
+  }
+
+  /**
+   * Generates a time-limited presigned GET URL for an AVAILABLE document. Returns 404 (via
+   * {@link DocumentNotFoundException}) if the document does not exist or has not completed
+   * upload yet — we don't want to leak the existence of PENDING rows.
+   */
+  @Transactional(readOnly = true)
+  public DocumentDownloadUrl getDownloadUrl(UUID id) {
+    DocumentEntity entity =
+        repository.findById(id).orElseThrow(() -> new DocumentNotFoundException(id));
+    if (entity.getStatus() != DocumentStatus.AVAILABLE) {
+      throw new DocumentNotFoundException(id);
+    }
+    Duration ttl = Duration.ofMinutes(storageProps.presignGetTtlMinutes());
+    String url = storage.presignGet(entity.getMinioPath(), ttl);
+    return new DocumentDownloadUrl(url);
   }
 }
