@@ -39,3 +39,5 @@ logging:
   level:
     root: INFO
     com.clara.ops.challenge: DEBUG
+  pattern:
+    level: "%5p [%X{requestId:-}]"
