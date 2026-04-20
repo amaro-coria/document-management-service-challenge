@@ -14,6 +14,7 @@ public class MinioConfig {
   public MinioClient minioAdminClient(MinioProperties props) {
     return MinioClient.builder()
         .endpoint(props.endpoint())
+        .region(props.effectiveRegion())
         .credentials(props.accessKey(), props.secretKey())
         .build();
   }
@@ -30,7 +31,7 @@ public class MinioConfig {
     // inside the service container.
     return MinioClient.builder()
         .endpoint(props.signingEndpoint())
-        .region("us-east-1")
+        .region(props.effectiveRegion())
         .credentials(props.accessKey(), props.secretKey())
         .build();
   }

@@ -15,6 +15,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record MinioProperties(
     String endpoint,
     String externalEndpoint,
+    String region,
     String accessKey,
     String secretKey,
     String bucket,
@@ -23,5 +24,9 @@ public record MinioProperties(
 
   public String signingEndpoint() {
     return externalEndpoint == null || externalEndpoint.isBlank() ? endpoint : externalEndpoint;
+  }
+
+  public String effectiveRegion() {
+    return region == null || region.isBlank() ? "us-east-1" : region;
   }
 }

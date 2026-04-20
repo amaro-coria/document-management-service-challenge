@@ -28,14 +28,14 @@ Review the plan carefully and confirm with `yes`.
 
 Terraform prints a `next_steps` output with the exact values to paste into the GitHub repo as **Repository variables** (Settings → Secrets and variables → Actions → *Variables* tab, **not** Secrets):
 
-| Variable              | Source                                    |
-|-----------------------|-------------------------------------------|
-| `AWS_ACCOUNT_ID`      | output `aws_account_id`                   |
-| `AWS_REGION`          | output `region`                           |
-| `AWS_ROLE_ARN`        | output `github_actions_role_arn`          |
-| `ECR_REPOSITORY`      | output `ecr_repository_url`               |
-| `TF_STATE_BUCKET`     | output `tf_state_bucket`                  |
-| `TF_STATE_LOCK_TABLE` | output `tf_state_lock_table`              |
+|       Variable        |                         Source                          |
+|-----------------------|---------------------------------------------------------|
+| `AWS_ACCOUNT_ID`      | output `aws_account_id`                                 |
+| `AWS_REGION`          | output `region`                                         |
+| `AWS_ROLE_ARN`        | output `github_actions_role_arn`                        |
+| `ECR_REPOSITORY`      | output `ecr_repository_url`                             |
+| `TF_STATE_BUCKET`     | output `tf_state_bucket`                                |
+| `TF_STATE_LOCK_TABLE` | output `tf_state_lock_table`                            |
 | `PROJECT_PREFIX`      | matches `var.project_prefix` (`clara-amaro` by default) |
 
 ## Destroying the bootstrap
