@@ -56,6 +56,11 @@ spring:
     hibernate:
       # AWS RDS doesn't run init scripts; let Hibernate create/validate tables on boot.
       ddl-auto: update
+    properties:
+      hibernate:
+        hbm2ddl:
+          # Also CREATE SCHEMA document_schema — RDS has no docker-entrypoint-initdb.d hook.
+          create_namespaces: true
 
 logging:
   level:
