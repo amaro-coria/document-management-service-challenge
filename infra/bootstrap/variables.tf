@@ -22,13 +22,18 @@ variable "github_repo" {
   default     = "document-management-service-challenge"
 }
 
-variable "allowed_branches" {
-  description = "Git refs permitted to assume the CI role (e.g. refs/heads/develop)."
+variable "allowed_subjects" {
+  description = <<-EOT
+    GitHub OIDC subject patterns allowed to assume the CI role.
+    Common patterns:
+      repo:OWNER/REPO:ref:refs/heads/*     -> any branch push / workflow_dispatch
+      repo:OWNER/REPO:pull_request         -> any pull_request event
+      repo:OWNER/REPO:ref:refs/tags/*      -> any tag push
+    Leave OWNER/REPO as literal placeholders; they're substituted at plan time.
+  EOT
   type        = list(string)
   default = [
-    "refs/heads/develop",
-    "refs/heads/main",
-    "refs/heads/feature/iac",
-    "refs/pull/*"
+    "ref:refs/heads/*",
+    "pull_request"
   ]
 }

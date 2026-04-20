@@ -19,8 +19,8 @@ resource "aws_iam_openid_connect_provider" "github" {
 
 locals {
   github_subjects = [
-    for branch_ref in var.allowed_branches :
-    "repo:${var.github_owner}/${var.github_repo}:ref:${branch_ref}"
+    for pattern in var.allowed_subjects :
+    "repo:${var.github_owner}/${var.github_repo}:${pattern}"
   ]
 }
 
