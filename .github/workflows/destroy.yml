@@ -57,6 +57,6 @@ jobs:
 
       - name: Summary
         run: |
-          echo "### 💣 Stack destroyed" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Stack destroyed" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "All main-stack resources have been removed. Bootstrap resources (ECR, state bucket, OIDC role) are untouched." >> "$GITHUB_STEP_SUMMARY"

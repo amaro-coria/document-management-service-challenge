@@ -115,7 +115,7 @@ jobs:
       - name: Print service URL
         run: |
           URL=$(terraform output -raw service_url)
-          echo "### 🚀 Service deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "### Service deployed" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "- URL: $URL" >> "$GITHUB_STEP_SUMMARY"
           echo "- Health: $URL/actuator/health" >> "$GITHUB_STEP_SUMMARY"
