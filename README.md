@@ -41,8 +41,6 @@ JSON metadata │  document-management-service  │      bytes
 
 Layered architecture: `api` (controllers, DTOs, advice) → `domain.service` → `domain.repo` (JPA) + `storage` (MinIO adapter behind a `StoragePort` interface). Specifications build composable, optional filters for search.
 
-See [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) (local-only, not tracked) for milestone-by-milestone notes.
-
 ---
 
 ## Prerequisites
