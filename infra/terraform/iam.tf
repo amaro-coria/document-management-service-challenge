@@ -70,8 +70,11 @@ resource "aws_iam_role_policy" "task_s3" {
 # dedicated IAM user scoped to the documents bucket and stash the keys in
 # Secrets Manager.
 resource "aws_iam_user" "service" {
-  name          = "${local.name}-service"
-  force_destroy = true
+  name = "${local.name}-service"
+  # No force_destroy: everything on this user (access key, inline policy) is
+  # managed by Terraform and destroyed before the user itself. force_destroy
+  # would trigger the provider to ListSSHPublicKeys / ListVirtualMFADevices
+  # / etc. — each a separate IAM permission the CI role doesn't need.
 }
 
 resource "aws_iam_user_policy" "service_s3" {
